@@ -12,6 +12,7 @@ import pandas as pd
 import argparse
 from model import build_model
 from tensorflow.keras.models import save_model
+import pickle
 
 FILEDIR = os.path.dirname(__file__)
 BASE_DIR = os.path.dirname(FILEDIR)
@@ -118,6 +119,8 @@ def train():
 
     le = LabelEncoder()
     y_enc = le.fit_transform(y)
+    with open(os.path.join(RESULTS_PATH, 'le.pkl'), 'wb') as fid:
+        pickle.dump(le, fid)
 
     skf = StratifiedKFold(n_splits=NUMBER_FOLDS, random_state=2, shuffle=True)
     
