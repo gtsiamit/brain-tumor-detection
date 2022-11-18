@@ -114,6 +114,7 @@ def save_model_locally(model, model_fname):
 def train():
     
     X, y, fname = load_dataset(data_path=DATASET_PATH)
+    print('Dataset loaded')
 
     le = LabelEncoder()
     y_enc = le.fit_transform(y)
@@ -126,13 +127,13 @@ def train():
     y_pred_prob_all = []
     fold_num_all = []
 
-    print(X.shape)
+    print('X.shape:', X.shape)
     model_input_shape = (X.shape[1],X.shape[2],X.shape[3])
 
     fold_num = 0
     for train_index, test_index in skf.split(X, y):
         fold_num +=1
-        print(f'Fold {fold_num}')
+        print(f'-- Fold {fold_num} --')
 
         X_train, X_test = X[train_index], X[test_index]
         y_enc_train, y_enc_test = y_enc[train_index], y_enc[test_index]
@@ -166,6 +167,7 @@ def train():
     pd.DataFrame(fold_num_all, columns=['fold']).to_parquet(os.path.join(RESULTS_PATH, 'fold_num_all.parquet.gzip'), compression='gzip')
 
     if SAVE_FULL_MODEL:
+        print('-- Full train --')
         model = build_model( input_shape=model_input_shape )
         history = model.fit(X, tf.cast(y_enc, tf.float32), verbose=1, epochs=EPOCHS, batch_size=BATCH_SIZE)
         plot_history(history_input=history.history, fold=fold_num)
@@ -194,3 +196,4 @@ def main():
 
 if __name__=='__main__':
     main()
+
