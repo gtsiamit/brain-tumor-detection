@@ -186,7 +186,7 @@ def main():
         DATASET_PATH = os.path.join(BASE_DIR, 'dataset')
     
     global RESULTS_PATH
-    RESULTS_PATH = os.path.join(FILEDIR, 'results')
+    RESULTS_PATH = os.path.join(FILEDIR, 'results/train')
     os.makedirs(RESULTS_PATH, exist_ok=True)
 
     train()
