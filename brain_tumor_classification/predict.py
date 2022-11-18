@@ -54,8 +54,8 @@ def predict():
     y_pred_prob = model.predict(X)
     y_pred_int = y_pred_prob.round()
 
-    y_pred_prob_df = pd.DataFrame( np.concatenate( [y_pred_prob[..., np.newaxis], fname[..., np.newaxis]], axis=1 ) )
-    y_pred_int_df = pd.DataFrame( np.concatenate( [y_pred_int[..., np.newaxis], fname[..., np.newaxis]], axis=1 ) )
+    y_pred_prob_df = pd.DataFrame( np.concatenate( [fname[..., np.newaxis], y_pred_prob], axis=1 ), columns=['fname', 'pred_prob'] )
+    y_pred_int_df = pd.DataFrame( np.concatenate( [fname[..., np.newaxis], y_pred_int], axis=1 ), columns=['fname', 'pred'] )
 
     y_pred_prob_df.to_parquet(os.path.join(RESULTS_PATH, 'y_pred_prob_all.parquet.gzip'), compression='gzip')
     y_pred_int_df.to_parquet(os.path.join(RESULTS_PATH, 'y_pred_all.parquet.gzip'), compression='gzip')
