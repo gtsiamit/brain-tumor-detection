@@ -3,3 +3,4 @@ __pycache__
 .ipynb_checkpoints
 dataset/
 brain_tumor_classification/results/
+*.ipynb
