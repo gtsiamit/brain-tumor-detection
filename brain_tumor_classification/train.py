@@ -77,6 +77,8 @@ def plot_history(history_input, fold):
     ax2.legend(loc='best')
     
     plt.xlabel('Epoch')
+    plt.xticks(ticks=model_history.epoch.to_list())
+
     fig.savefig(os.path.join(RESULTS_PATH, f'history_fold_{fold}.png'), facecolor='white', transparent=False, bbox_inches='tight')
 
 
@@ -199,4 +201,3 @@ def main():
 
 if __name__=='__main__':
     main()
-
