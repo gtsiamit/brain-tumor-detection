@@ -6,14 +6,17 @@ import os
 import pandas as pd
 import argparse
 from model import build_unet_model
-from tensorflow.keras.models import save_model
+from tensorflow.keras.models import save_model, load_model
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 
 FILEDIR = os.path.dirname(__file__)
 BASE_DIR = os.path.dirname(FILEDIR)
 IMAGE_SIZE_X = 128
 IMAGE_SIZE_Y = 128
 EPOCHS = 20
+EPOCHS_ES_MC = 2*EPOCHS
 BATCH_SIZE = 32
+PATIENCE_ES = 5
 
 
 def load_dataset(dataset_part):
@@ -90,6 +93,11 @@ def save_model_locally(model, model_fname):
     save_model(model=model, filepath=os.path.join(RESULTS_PATH, model_fname))
 
 
+def load_stored_model(model_filepath):
+    model_loaded = load_model(filepath=model_filepath)
+    return model_loaded
+
+
 def train():
 
     X_train, fname_X_train, y_train, fname_y_train = load_dataset(dataset_part='TRAIN')
@@ -105,9 +113,22 @@ def train():
     input_model_shape = (X_train.shape[1], X_train.shape[2], X_train.shape[3])
     model = build_unet_model(input_shape=input_model_shape)
 
-    history = model.fit(x=X_train, y=y_train, validation_data=(X_val,y_val), verbose=1, epochs=EPOCHS, batch_size=BATCH_SIZE)
+
+    if USE_CALLBACKS:
+        es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=PATIENCE_ES)
+        store_model_path = os.path.join(RESULTS_PATH, 'model_unet_es_mc.h5')
+        mc = ModelCheckpoint(store_model_path, monitor='val_accuracy', mode='max', verbose=1, save_best_only=True)
+
+        history = model.fit(x=X_train, y=y_train, validation_data=(X_val,y_val), epochs=EPOCHS_ES_MC, batch_size=BATCH_SIZE, callbacks=[es, mc], verbose=1)
+    
+    else:
+        history = model.fit(x=X_train, y=y_train, validation_data=(X_val,y_val), epochs=EPOCHS, batch_size=BATCH_SIZE, verbose=1)
+
     plot_history(history_input=history.history)
 
+    if USE_CALLBACKS:
+        model = load_stored_model(model_filepath=store_model_path)
+    
     test_metrics = model.evaluate(X_test, y_test, verbose=1, batch_size=BATCH_SIZE)
 
     
@@ -117,7 +138,7 @@ def train():
         print(f'Testing Accuracy: {test_metrics[1]}', file=txt_file)
 
 
-    if SAVE_MODEL:
+    if not USE_CALLBACKS:
         save_model_locally(model=model, model_fname=f'model_unet.h5')
     
 
@@ -127,12 +148,12 @@ def train():
 def main():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset_path', type=str, required=False, help='Path to dataset')
-    parser.add_argument('--save_model', choices=('True','False'), type=str, required=False, default='True', help='Save trained model')
+    parser.add_argument('--dataset_path', type=str, action='store', dest='dataset_path', required=False, help='Path to dataset')
+    parser.add_argument('--use_callbacks', choices=('True','False'), type=str, action='store', dest='use_callbacks', required=False, default='True', help='Use callbacks for training model')
     args = parser.parse_args()
 
-    global DATASET_PATH, SAVE_MODEL
-    SAVE_MODEL = args.save_model == 'True'
+    global DATASET_PATH, USE_CALLBACKS
+    USE_CALLBACKS = args.use_callbacks == 'True'
     DATASET_PATH = args.dataset_path
     if not DATASET_PATH:
         DATASET_PATH = os.path.join(BASE_DIR, 'dataset')
