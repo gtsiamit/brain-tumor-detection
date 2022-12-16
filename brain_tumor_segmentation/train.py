@@ -14,10 +14,9 @@ FILEDIR = Path(__file__)
 BASE_DIR = FILEDIR.parent
 IMAGE_SIZE_X = 128
 IMAGE_SIZE_Y = 128
-EPOCHS = 20
-EPOCHS_ES_MC = 2*EPOCHS
+EPOCHS = 40
 BATCH_SIZE = 32
-PATIENCE_ES = 5
+PATIENCE_ES = 3
 
 
 def load_dataset(dataset_part):
@@ -94,11 +93,6 @@ def save_model_locally(model, model_fname):
     save_model(model=model, filepath=str(RESULTS_PATH.joinpath(model_fname)))
 
 
-def load_stored_model(model_filepath):
-    model_loaded = load_model(filepath=model_filepath)
-    return model_loaded
-
-
 def train():
 
     X_train, fname_X_train, y_train, fname_y_train = load_dataset(dataset_part='TRAIN')
@@ -115,20 +109,10 @@ def train():
     model = build_unet_model(input_shape=input_model_shape)
 
 
-    if USE_CALLBACKS:
-        es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=PATIENCE_ES)
-        store_model_path = str(RESULTS_PATH.joinpath('model_unet_es_mc.h5'))
-        mc = ModelCheckpoint(store_model_path, monitor='val_accuracy', mode='max', verbose=1, save_best_only=True)
-
-        history = model.fit(x=X_train, y=y_train, validation_data=(X_val,y_val), epochs=EPOCHS_ES_MC, batch_size=BATCH_SIZE, callbacks=[es, mc], verbose=1)
-    
-    else:
-        history = model.fit(x=X_train, y=y_train, validation_data=(X_val,y_val), epochs=EPOCHS, batch_size=BATCH_SIZE, verbose=1)
+    es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=PATIENCE_ES)
+    history = model.fit(x=X_train, y=y_train, validation_data=(X_val,y_val), epochs=EPOCHS, batch_size=BATCH_SIZE, callbacks=[es], verbose=1)
 
     plot_history(history_input=history.history)
-
-    if USE_CALLBACKS:
-        model = load_stored_model(model_filepath=store_model_path)
     
     test_metrics = model.evaluate(X_test, y_test, verbose=1, batch_size=BATCH_SIZE)
 
@@ -139,8 +123,7 @@ def train():
         print(f'Testing Accuracy: {test_metrics[1]}', file=txt_file)
 
 
-    if not USE_CALLBACKS:
-        save_model_locally(model=model, model_fname=f'model_unet.h5')
+    save_model_locally(model=model, model_fname=f'model_unet.h5')
     
 
     print('-- Finished --')
@@ -150,11 +133,9 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset_path', type=str, action='store', dest='dataset_path', required=False, help='Path to dataset')
-    parser.add_argument('--use_callbacks', choices=('True','False'), type=str, action='store', dest='use_callbacks', required=False, default='True', help='Use callbacks for training model')
     args = parser.parse_args()
 
-    global DATASET_PATH, USE_CALLBACKS
-    USE_CALLBACKS = args.use_callbacks == 'True'
+    global DATASET_PATH
     DATASET_PATH = args.dataset_path
     if not DATASET_PATH:
         DATASET_PATH = BASE_DIR.joinpath('dataset/')
