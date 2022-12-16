@@ -185,7 +185,7 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset_path', type=str, required=False, help='Path to dataset')
-    parser.add_argument('--save_full_model', choices=('True','False'), type=str, required=False, default='False', help='Train model on full dataset')
+    parser.add_argument('--save_full_model', choices=('True','False'), type=str, required=False, default='True', help='Train model on full dataset')
     args = parser.parse_args()
 
     global DATASET_PATH, SAVE_FULL_MODEL
