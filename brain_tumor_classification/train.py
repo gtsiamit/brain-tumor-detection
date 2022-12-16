@@ -88,7 +88,7 @@ def plot_history(history_input, fold=None):
 
 def plot_cm(cm_array, cm_title, xticks, yticks, fmt, filename):
 
-    fig = plt.figure(figsize=(10, 10))
+    fig = plt.figure(figsize=(8, 6))
     ax = fig.add_subplot(111)
     sns.heatmap(cm_array, annot=True, cmap='Blues', fmt=fmt, annot_kws={'size': 12})
     ax.set_title(cm_title)
