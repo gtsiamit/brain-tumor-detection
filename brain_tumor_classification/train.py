@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from glob import glob
 import os
+from pathlib import Path
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import confusion_matrix, accuracy_score
@@ -14,8 +15,8 @@ from model import build_model
 from tensorflow.keras.models import save_model
 import pickle
 
-FILEDIR = os.path.dirname(__file__)
-BASE_DIR = os.path.dirname(FILEDIR)
+FILEDIR = Path(__file__)
+BASE_DIR = FILEDIR.parent
 IMAGE_SIZE_X = 128
 IMAGE_SIZE_Y = 128
 NUMBER_FOLDS = 10
@@ -45,7 +46,7 @@ def load_image_data(img_path_list, label):
 
 
 def load_dataset(data_path):
-    jpg_path = os.path.join(data_path, '**/*.jpg')
+    jpg_path = str(data_path.joinpath('**/*.jpg'))
     img_files = glob(jpg_path, recursive = True)
     yes_img_files = [file for file in img_files if 'yes' in file]
     no_img_files = [file for file in img_files if 'no' in file]
@@ -79,7 +80,7 @@ def plot_history(history_input, fold):
     plt.xlabel('Epoch')
     plt.xticks(ticks=model_history.epoch.to_list())
 
-    fig.savefig(os.path.join(RESULTS_PATH, f'history_fold_{fold}.png'), facecolor='white', transparent=False, bbox_inches='tight')
+    fig.savefig(str(RESULTS_PATH.joinpath(f'history_fold_{fold}.png')), facecolor='white', transparent=False, bbox_inches='tight')
 
 
 def plot_cm(cm_array, cm_title, xticks, yticks, fmt, filename):
@@ -94,7 +95,7 @@ def plot_cm(cm_array, cm_title, xticks, yticks, fmt, filename):
     #ax_input.yaxis.set_ticklabels(['Negative','Positive'], fontsize=12)
     ax.xaxis.set_ticklabels(xticks, fontsize=12)
     ax.yaxis.set_ticklabels(yticks, fontsize=12)
-    fig.savefig(os.path.join(RESULTS_PATH, f'cm_{filename}.png'), facecolor='white', transparent=False, bbox_inches='tight')
+    fig.savefig(str(RESULTS_PATH.joinpath(f'cm_{filename}.png')), facecolor='white', transparent=False, bbox_inches='tight')
 
 
 def plot_confusion_matrix(y_true_all, y_pred_all, le):
@@ -111,7 +112,7 @@ def plot_confusion_matrix(y_true_all, y_pred_all, le):
 
 
 def save_model_locally(model, model_fname):
-    save_model(model=model, filepath=os.path.join(RESULTS_PATH, model_fname))
+    save_model(model=model, filepath=str(RESULTS_PATH.joinpath(model_fname)))
 
 
 def train():
@@ -121,7 +122,7 @@ def train():
 
     le = LabelEncoder()
     y_enc = le.fit_transform(y)
-    with open(os.path.join(RESULTS_PATH, 'le.pkl'), 'wb') as fid:
+    with open(str(RESULTS_PATH.joinpath('le.pkl')), 'wb') as fid:
         pickle.dump(le, fid)
 
     skf = StratifiedKFold(n_splits=NUMBER_FOLDS, random_state=2, shuffle=True)
@@ -165,11 +166,11 @@ def train():
 
     plot_confusion_matrix(y_true_all=y_true_all, y_pred_all=y_pred_all, le=le)
 
-    pd.DataFrame(y_pred_prob_all, columns=['pred_prob']).to_parquet(os.path.join(RESULTS_PATH, 'y_pred_prob_all.parquet.gzip'), compression='gzip')
-    pd.DataFrame(y_pred_all, columns=['pred']).to_parquet(os.path.join(RESULTS_PATH, 'y_pred_all.parquet.gzip'), compression='gzip')
-    pd.DataFrame(y_true_all, columns=['true']).to_parquet(os.path.join(RESULTS_PATH, 'y_true_all.parquet.gzip'), compression='gzip')
-    pd.DataFrame(fname_folds_all, columns=['fname']).to_parquet(os.path.join(RESULTS_PATH, 'fname_folds_all.parquet.gzip'), compression='gzip')
-    pd.DataFrame(fold_num_all, columns=['fold']).to_parquet(os.path.join(RESULTS_PATH, 'fold_num_all.parquet.gzip'), compression='gzip')
+    pd.DataFrame(y_pred_prob_all, columns=['pred_prob']).to_parquet(str(RESULTS_PATH.joinpath('y_pred_prob_all.parquet.gzip')), compression='gzip')
+    pd.DataFrame(y_pred_all, columns=['pred']).to_parquet(str(RESULTS_PATH.joinpath('y_pred_all.parquet.gzip')), compression='gzip')
+    pd.DataFrame(y_true_all, columns=['true']).to_parquet(str(RESULTS_PATH.joinpath('y_true_all.parquet.gzip')), compression='gzip')
+    pd.DataFrame(fname_folds_all, columns=['fname']).to_parquet(str(RESULTS_PATH.joinpath('fname_folds_all.parquet.gzip')), compression='gzip')
+    pd.DataFrame(fold_num_all, columns=['fold']).to_parquet(str(RESULTS_PATH.joinpath('fold_num_all.parquet.gzip')), compression='gzip')
 
     if SAVE_FULL_MODEL:
         print('-- Full train --')
@@ -190,10 +191,12 @@ def main():
     SAVE_FULL_MODEL = args.save_full_model == 'True'
     DATASET_PATH = args.dataset_path
     if not DATASET_PATH:
-        DATASET_PATH = os.path.join(BASE_DIR, 'dataset')
+        DATASET_PATH = BASE_DIR.joinpath('dataset')
+    else:
+        DATASET_PATH = Path(DATASET_PATH)
     
     global RESULTS_PATH
-    RESULTS_PATH = os.path.join(FILEDIR, 'results/train')
+    RESULTS_PATH = FILEDIR.joinpath('results/train')
     os.makedirs(RESULTS_PATH, exist_ok=True)
 
     train()

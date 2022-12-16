@@ -3,14 +3,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 from glob import glob
 import os
+from pathlib import Path
 import pandas as pd
 import argparse
 from model import build_unet_model
 from tensorflow.keras.models import save_model, load_model
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 
-FILEDIR = os.path.dirname(__file__)
-BASE_DIR = os.path.dirname(FILEDIR)
+FILEDIR = Path(__file__)
+BASE_DIR = FILEDIR.parent
 IMAGE_SIZE_X = 128
 IMAGE_SIZE_Y = 128
 EPOCHS = 20
@@ -20,8 +21,8 @@ PATIENCE_ES = 5
 
 
 def load_dataset(dataset_part):
-    img_dir = os.path.join(DATASET_PATH, f'archive/Br35H-Mask-RCNN/{dataset_part}')
-    jpg_path = os.path.join(img_dir, '*.jpg')
+    img_dir = DATASET_PATH.joinpath(f'archive/Br35H-Mask-RCNN/{dataset_part}')
+    jpg_path = str(img_dir.joinpath('*.jpg'))
     img_files = glob(jpg_path, recursive = True)
     img_files = [f for f in img_files if 'mask' not in f]
 
@@ -86,11 +87,11 @@ def plot_history(history_input):
     plt.xlabel('Epoch')
     plt.xticks(ticks=model_history.epoch.to_list())
 
-    fig.savefig(os.path.join(RESULTS_PATH, 'history.png'), facecolor='white', transparent=False, bbox_inches='tight')
+    fig.savefig(str(RESULTS_PATH.joinpath('history.png')), facecolor='white', transparent=False, bbox_inches='tight')
 
 
 def save_model_locally(model, model_fname):
-    save_model(model=model, filepath=os.path.join(RESULTS_PATH, model_fname))
+    save_model(model=model, filepath=str(RESULTS_PATH.joinpath(model_fname)))
 
 
 def load_stored_model(model_filepath):
@@ -116,7 +117,7 @@ def train():
 
     if USE_CALLBACKS:
         es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=PATIENCE_ES)
-        store_model_path = os.path.join(RESULTS_PATH, 'model_unet_es_mc.h5')
+        store_model_path = str(RESULTS_PATH.joinpath('model_unet_es_mc.h5'))
         mc = ModelCheckpoint(store_model_path, monitor='val_accuracy', mode='max', verbose=1, save_best_only=True)
 
         history = model.fit(x=X_train, y=y_train, validation_data=(X_val,y_val), epochs=EPOCHS_ES_MC, batch_size=BATCH_SIZE, callbacks=[es, mc], verbose=1)
@@ -132,7 +133,7 @@ def train():
     test_metrics = model.evaluate(X_test, y_test, verbose=1, batch_size=BATCH_SIZE)
 
     
-    evaluation_results_filepath = os.path.join(RESULTS_PATH, 'evaluation_metrics.txt')
+    evaluation_results_filepath = str(RESULTS_PATH.joinpath('evaluation_metrics.txt'))
     with open(evaluation_results_filepath, 'w') as txt_file:
         print(f'Testing Loss: {test_metrics[0]}', file=txt_file)
         print(f'Testing Accuracy: {test_metrics[1]}', file=txt_file)
@@ -156,10 +157,12 @@ def main():
     USE_CALLBACKS = args.use_callbacks == 'True'
     DATASET_PATH = args.dataset_path
     if not DATASET_PATH:
-        DATASET_PATH = os.path.join(BASE_DIR, 'dataset')
+        DATASET_PATH = BASE_DIR.joinpath('dataset/')
+    else:
+        DATASET_PATH = Path(DATASET_PATH)
     
     global RESULTS_PATH
-    RESULTS_PATH = os.path.join(FILEDIR, 'results/train')
+    RESULTS_PATH = FILEDIR.joinpath('results/train/')
     os.makedirs(RESULTS_PATH, exist_ok=True)
 
     train()
