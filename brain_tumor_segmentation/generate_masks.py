@@ -1,11 +1,11 @@
 import cv2
 import numpy as np
-import os
+from pathlib import Path
 import argparse
 import json
 
-FILEDIR = os.path.dirname(__file__)
-BASE_DIR = os.path.dirname(FILEDIR)
+FILEDIR = Path(__file__)
+BASE_DIR = FILEDIR.parent
 
 ANNOTATIONS_MAPPING = {
     'TRAIN': 'annotations_train.json', 
@@ -55,8 +55,8 @@ def handle_shape(img_path, shape_attributes):
 def create_masks():
 
     for key in ANNOTATIONS_MAPPING:
-        set_path = os.path.join(DATASET_PATH, f'archive/Br35H-Mask-RCNN/{key}')
-        annotation_path = os.path.join(set_path, ANNOTATIONS_MAPPING[key])
+        set_path = DATASET_PATH.joinpath(f'archive/Br35H-Mask-RCNN/{key}')
+        annotation_path = set_path.joinpath(ANNOTATIONS_MAPPING[key])
 
         with open(annotation_path) as f:
             annot_data = json.load(f)
@@ -68,14 +68,14 @@ def create_masks():
             sample_annotation = annot_data[ dict_keys_list[sample_idx] ]
             
             fname = sample_annotation['filename']
-            img_filepath = os.path.join(set_path, fname)
+            img_filepath = set_path.joinpath(fname)
 
             annot_shape_attributes = sample_annotation['regions'][0]['shape_attributes']
 
             mask = handle_shape(img_path=img_filepath, shape_attributes=annot_shape_attributes)
             
             mask_fname = fname.split('.')[0] + '_mask.jpg'
-            mask_path = os.path.join(set_path, mask_fname)
+            mask_path = set_path.joinpath(mask_fname)
             cv2.imwrite(filename=mask_path, img=mask)
         
         print(f'Masks for {key} set generated')
@@ -92,7 +92,9 @@ def main():
     global DATASET_PATH
     DATASET_PATH = args.dataset_path
     if not DATASET_PATH:
-        DATASET_PATH = os.path.join(BASE_DIR, 'dataset')
+        DATASET_PATH = BASE_DIR.joinpath('dataset')
+    else:
+        DATASET_PATH = Path(DATASET_PATH)
     
     create_masks()
 
