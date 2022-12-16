@@ -2,12 +2,13 @@ import cv2
 import numpy as np
 from glob import glob
 import os
+from pathlib import Path
 import pandas as pd
 import argparse
 from tensorflow.keras.models import load_model
 
-FILEDIR = os.path.dirname(__file__)
-BASE_DIR = os.path.dirname(FILEDIR)
+FILEDIR = Path(__file__)
+BASE_DIR = FILEDIR.parent
 IMAGE_SIZE_X = 128
 IMAGE_SIZE_Y = 128
 
@@ -30,7 +31,7 @@ def load_image_data(img_path_list):
 
 
 def load_dataset(data_path):
-    jpg_path = os.path.join(data_path, '**/*.jpg')
+    jpg_path = data_path.joinpath('**/*.jpg')
     img_files = glob(jpg_path, recursive = True)
 
     X_arr, fname_arr = load_image_data(img_path_list=img_files)
@@ -57,8 +58,8 @@ def predict():
     y_pred_prob_df = pd.DataFrame( np.concatenate( [fname[..., np.newaxis], y_pred_prob], axis=1 ), columns=['fname', 'pred_prob'] )
     y_pred_int_df = pd.DataFrame( np.concatenate( [fname[..., np.newaxis], y_pred_int], axis=1 ), columns=['fname', 'pred'] )
 
-    y_pred_prob_df.to_parquet(os.path.join(RESULTS_PATH, 'y_pred_prob_all.parquet.gzip'), compression='gzip')
-    y_pred_int_df.to_parquet(os.path.join(RESULTS_PATH, 'y_pred_all.parquet.gzip'), compression='gzip')
+    y_pred_prob_df.to_parquet(RESULTS_PATH.joinpath('y_pred_prob_all.parquet.gzip'), compression='gzip')
+    y_pred_int_df.to_parquet(RESULTS_PATH.joinpath('y_pred_all.parquet.gzip'), compression='gzip')
 
 
 def main():
@@ -71,13 +72,17 @@ def main():
     global DATA_PATH, MODEL_PATH
     DATA_PATH = args.data_path
     if not DATA_PATH:
-        DATA_PATH = os.path.join(BASE_DIR, 'dataset/archive/pred')
+        DATA_PATH = BASE_DIR.joinpath('dataset/archive/pred')
+    else:
+        DATA_PATH = Path(DATA_PATH)
     
     MODEL_PATH = args.model_path
     if not MODEL_PATH:
-        MODEL_PATH = os.path.join(FILEDIR, 'results/train/model_full.h5')
+        MODEL_PATH = FILEDIR.joinpath('results/train/model_full.h5')
+    else:
+        MODEL_PATH = Path(MODEL_PATH)
     global RESULTS_PATH
-    RESULTS_PATH = os.path.join(FILEDIR, 'results/predict')
+    RESULTS_PATH = FILEDIR.joinpath('results/predict')
     os.makedirs(RESULTS_PATH, exist_ok=True)
 
     predict()
