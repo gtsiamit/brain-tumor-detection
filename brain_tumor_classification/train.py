@@ -61,7 +61,7 @@ def load_dataset(data_path):
     return X_arr, y_arr, fname_arr
 
 
-def plot_history(history_input, fold):
+def plot_history(history_input, fold=None):
 
     model_history = pd.DataFrame.from_dict(history_input)
     model_history['epoch'] = model_history.index.to_numpy()+1
@@ -80,7 +80,10 @@ def plot_history(history_input, fold):
     plt.xlabel('Epoch')
     plt.xticks(ticks=model_history.epoch.to_list())
 
-    fig.savefig(str(RESULTS_PATH.joinpath(f'history_fold_{fold}.png')), facecolor='white', transparent=False, bbox_inches='tight')
+    if fold:
+        fig.savefig(str(RESULTS_PATH.joinpath(f'history_fold_{fold}.png')), facecolor='white', transparent=False, bbox_inches='tight')
+    else:
+        fig.savefig(str(RESULTS_PATH.joinpath(f'history.png')), facecolor='white', transparent=False, bbox_inches='tight')
 
 
 def plot_cm(cm_array, cm_title, xticks, yticks, fmt, filename):
@@ -91,11 +94,9 @@ def plot_cm(cm_array, cm_title, xticks, yticks, fmt, filename):
     ax.set_title(cm_title)
     ax.set_xlabel('\nPredicted', fontsize=12)
     ax.set_ylabel('True', fontsize=12)
-    #ax_input.xaxis.set_ticklabels(['Negative','Positive'], fontsize=12)
-    #ax_input.yaxis.set_ticklabels(['Negative','Positive'], fontsize=12)
     ax.xaxis.set_ticklabels(xticks, fontsize=12)
     ax.yaxis.set_ticklabels(yticks, fontsize=12)
-    fig.savefig(str(RESULTS_PATH.joinpath(f'cm_{filename}.png')), facecolor='white', transparent=False, bbox_inches='tight')
+    fig.savefig(str(RESULTS_PATH.joinpath(f'{filename}.png')), facecolor='white', transparent=False, bbox_inches='tight')
 
 
 def plot_confusion_matrix(y_true_all, y_pred_all, le):
@@ -104,7 +105,7 @@ def plot_confusion_matrix(y_true_all, y_pred_all, le):
     cm_norm = confusion_matrix(y_true=le.inverse_transform(y_true_all), y_pred=le.inverse_transform(y_pred_all[:,0].astype(int)), labels=le.classes_, normalize='true')
     cm_norm *=100
 
-    acc = accuracy_score(y_true=y_true_all, y_pred=y_pred_all)
+    acc = accuracy_score(y_true=y_true_all, y_pred=y_pred_all) * 100
     acc_title = f'Accuracy: {acc:.02f}%'
 
     plot_cm(cm_array=cm, cm_title=acc_title, xticks=le.classes_, yticks=le.classes_, fmt='g', filename='cm')
