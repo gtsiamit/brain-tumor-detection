@@ -7,14 +7,14 @@ from pathlib import Path
 import pandas as pd
 import argparse
 from model import build_unet_model
-from tensorflow.keras.models import save_model, load_model
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+from tensorflow.keras.models import save_model
+from tensorflow.keras.callbacks import EarlyStopping
 
-FILEDIR = Path(__file__)
+FILEDIR = Path(__file__).parent
 BASE_DIR = FILEDIR.parent
 IMAGE_SIZE_X = 128
 IMAGE_SIZE_Y = 128
-EPOCHS = 40
+EPOCHS = 100
 BATCH_SIZE = 32
 PATIENCE_ES = 3
 
@@ -84,7 +84,7 @@ def plot_history(history_input):
     ax2.legend(loc='best')
 
     plt.xlabel('Epoch')
-    plt.xticks(ticks=model_history.epoch.to_list())
+    plt.xticks(ticks=model_history.epoch.to_list(), rotation=90)
 
     fig.savefig(str(RESULTS_PATH.joinpath('history.png')), facecolor='white', transparent=False, bbox_inches='tight')
 

@@ -15,7 +15,7 @@ from model import build_model
 from tensorflow.keras.models import save_model
 import pickle
 
-FILEDIR = Path(__file__)
+FILEDIR = Path(__file__).parent
 BASE_DIR = FILEDIR.parent
 IMAGE_SIZE_X = 128
 IMAGE_SIZE_Y = 128
@@ -177,7 +177,7 @@ def train():
         print('-- Full train --')
         model = build_model( input_shape=model_input_shape )
         history = model.fit(X, tf.cast(y_enc, tf.float32), verbose=1, epochs=EPOCHS, batch_size=BATCH_SIZE)
-        plot_history(history_input=history.history, fold=fold_num)
+        plot_history(history_input=history.history)
         save_model_locally(model=model, model_fname=f'model_full.h5')
 
 

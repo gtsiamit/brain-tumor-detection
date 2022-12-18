@@ -4,7 +4,7 @@ from pathlib import Path
 import argparse
 import json
 
-FILEDIR = Path(__file__)
+FILEDIR = Path(__file__).parent
 BASE_DIR = FILEDIR.parent
 
 ANNOTATIONS_MAPPING = {
@@ -58,7 +58,7 @@ def create_masks():
         set_path = DATASET_PATH.joinpath(f'archive/Br35H-Mask-RCNN/{key}')
         annotation_path = set_path.joinpath(ANNOTATIONS_MAPPING[key])
 
-        with open(annotation_path) as f:
+        with open(str(annotation_path)) as f:
             annot_data = json.load(f)
         
         dict_keys_list = list( annot_data.keys() )
@@ -72,11 +72,11 @@ def create_masks():
 
             annot_shape_attributes = sample_annotation['regions'][0]['shape_attributes']
 
-            mask = handle_shape(img_path=img_filepath, shape_attributes=annot_shape_attributes)
+            mask = handle_shape(img_path=str(img_filepath), shape_attributes=annot_shape_attributes)
             
             mask_fname = fname.split('.')[0] + '_mask.jpg'
             mask_path = set_path.joinpath(mask_fname)
-            cv2.imwrite(filename=mask_path, img=mask)
+            cv2.imwrite(filename=str(mask_path), img=mask)
         
         print(f'Masks for {key} set generated')
     

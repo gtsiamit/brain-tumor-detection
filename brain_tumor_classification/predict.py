@@ -7,7 +7,7 @@ import pandas as pd
 import argparse
 from tensorflow.keras.models import load_model
 
-FILEDIR = Path(__file__)
+FILEDIR = Path(__file__).parent
 BASE_DIR = FILEDIR.parent
 IMAGE_SIZE_X = 128
 IMAGE_SIZE_Y = 128
@@ -32,7 +32,7 @@ def load_image_data(img_path_list):
 
 def load_dataset(data_path):
     jpg_path = data_path.joinpath('**/*.jpg')
-    img_files = glob(jpg_path, recursive = True)
+    img_files = glob(str(jpg_path), recursive = True)
 
     X_arr, fname_arr = load_image_data(img_path_list=img_files)
 
@@ -40,7 +40,7 @@ def load_dataset(data_path):
 
 
 def load_model_from_path():
-    model = load_model(filepath=MODEL_PATH)
+    model = load_model(filepath=str(MODEL_PATH))
     return model
 
 
