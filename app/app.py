@@ -7,6 +7,7 @@ from tensorflow.keras.models import load_model
 import numpy as np
 import pickle
 import matplotlib.pyplot as plt
+from PIL import Image
 
 FILEDIR = Path(__file__).parent
 BASE_DIR = FILEDIR.parent
@@ -50,11 +51,21 @@ def store_uploaded_file(file_uploaded):
         f.write(file_uploaded.getbuffer())
 
 
-def load_image_file(filename):
+def remove_uploaded_file(file_uploaded):
+
+    img_path = UPLOAD_DIR.joinpath(file_uploaded.name)
+    os.remove(path=img_path)
+
+
+def load_image_file(filename, grayscale=False):
 
     img_path = UPLOAD_DIR.joinpath(filename)
 
-    img = cv2.imread( str(img_path) )
+    if not grayscale:
+        img = cv2.imread( str(img_path) )
+    else:
+        img = cv2.imread(str(img_path), cv2.IMREAD_GRAYSCALE)
+    
     img_resized = cv2.resize(img, (IMAGE_SIZE_X,IMAGE_SIZE_Y))
 
     return img_resized
@@ -63,8 +74,6 @@ def load_image_file(filename):
 def load_model_from_path(model_path):
     model = load_model(filepath=str(model_path))
     return model
-
-
 
 
 def app_classification_results_output(img_arr):
@@ -94,7 +103,58 @@ def app_classification_results_output(img_arr):
         st.write(f"Brain tumor has been detected in the input image")
     elif predicted_label=='no':
         st.write(f"Brain tumor has not been detected in the input image")
+    
+    return predicted_label
 
+
+def normalize_image_data(input_array, inverse=False):
+    if not inverse:
+        normalized_array = cv2.normalize(src=input_array, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+    else:
+        normalized_array = cv2.normalize(src=input_array, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+    
+    return normalized_array
+
+
+def plot_store_segmentation_resuts(input_img, seg_img, temp_img_path):
+    
+    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(6,3))
+    ax[0].imshow(X=input_img, cmap='gray')
+    ax[0].set_title(label='Input image', fontsize=10)
+    ax[0].axis('off')
+    ax[1].imshow(X=seg_img)
+    ax[1].set_title(label='Segmented image', fontsize=10)
+    ax[1].axis('off')
+    
+    fig.savefig(temp_img_path, facecolor='white', transparent=False, bbox_inches='tight')
+
+
+def app_segmentation_results_output(img_arr):
+
+    model = load_model_from_path(model_path=SEGMENTATION_MODEL_PATH)
+
+    img_arr_for_pred = img_arr[np.newaxis, ..., np.newaxis]
+    img_arr_for_pred_norm = normalize_image_data(input_array=img_arr_for_pred)
+
+    pred_img_arr = model.predict(img_arr_for_pred_norm, verbose=0)
+    pred_img_arr_norm_inv = normalize_image_data(input_array=pred_img_arr, inverse=True)
+
+    pred_img_arr_3_channel = cv2.cvtColor(pred_img_arr_norm_inv[0], cv2.COLOR_GRAY2RGB)
+
+    ret, thresh = cv2.threshold(src=pred_img_arr_3_channel, thresh=50, maxval=255, type=cv2.THRESH_BINARY)
+    indices_above_thres = np.where(thresh>0)
+
+    segmented_img = cv2.cvtColor(img_arr_for_pred[0], cv2.COLOR_GRAY2RGB)
+    segmented_img[indices_above_thres[:2]] = [255,0,0]
+
+    st.header("Brain tumor segmentation results")
+    st.write(f"Input image and segmented image:")
+
+    temp_img_path = str(TEMP_DIR.joinpath('temp_segmented_image.png'))
+    plot_store_segmentation_resuts(input_img=img_arr_for_pred[0], seg_img=segmented_img, temp_img_path=temp_img_path)
+    image_for_plot = Image.open(fp=temp_img_path)
+    st.image(image=image_for_plot, caption='Segmentation results', channels='RGB')
+    os.remove(path=temp_img_path)
 
 
 
@@ -110,11 +170,18 @@ def app():
         store_uploaded_file(file_uploaded=file_uploaded)
 
         img_filename = file_uploaded.name
-        img_arr = load_image_file(filename=img_filename)
 
         if selectbox_classification=='Yes':
-            app_classification_results_output(img_arr=img_arr)
-
+            img_arr = load_image_file(filename=img_filename)
+            predicted_classification_label = app_classification_results_output(img_arr=img_arr)
+        
+        if selectbox_segmentation=='Yes' and predicted_classification_label=='yes':
+            img_arr = load_image_file(filename=img_filename, grayscale=True)
+            app_segmentation_results_output(img_arr=img_arr)
+        elif selectbox_segmentation=='Yes' and predicted_classification_label=='no':
+            st.write(f"Brain tumor segmentation will not be applied on the input image.")
+        
+        remove_uploaded_file(file_uploaded=file_uploaded)
 
 
 
@@ -145,9 +212,11 @@ def main():
     else:
         LABEL_ENCODER_PATH = Path(LABEL_ENCODER_PATH)
     
-    global UPLOAD_DIR
+    global UPLOAD_DIR, TEMP_DIR
     UPLOAD_DIR = FILEDIR.joinpath('upload_dir')
+    TEMP_DIR = FILEDIR.joinpath('temp_dir')
     os.makedirs(UPLOAD_DIR, exist_ok=True)
+    os.makedirs(TEMP_DIR, exist_ok=True)
 
     app()
 
@@ -156,6 +225,3 @@ def main():
 
 if __name__=="__main__":
     main()
-
-
-
