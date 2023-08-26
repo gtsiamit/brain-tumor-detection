@@ -4,5 +4,6 @@ __pycache__
 dataset/
 brain_tumor_classification/results/
 brain_tumor_segmentation/results/
+*.ipynb
 **/*.png
 **/*.jpg
