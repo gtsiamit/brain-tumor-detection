@@ -4,7 +4,15 @@ from tensorflow.keras.regularizers import l2
 from tensorflow.keras.optimizers import RMSprop
 
 
-def build_model(input_shape):
+def build_model(input_shape: tuple):
+	"""CNN classification model
+
+	Args:
+		input_shape (tuple): Input shape of model
+
+	Returns:
+		model (tensorflow.keras.Model): CNN model
+	"""
 
 	# Create model
 	model = Sequential()
@@ -36,7 +44,6 @@ def build_model(input_shape):
     # Output Dense Layer
 	model.add(Dense(1, activation='sigmoid'))
 	
-	#optimizer = Adam(learning_rate = 0.0001)
 	optimizer = RMSprop(learning_rate = 0.0001)
 	model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics = ['accuracy'])
 
