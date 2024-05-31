@@ -13,6 +13,24 @@ import tensorflow as tf
 import cv2
 
 
+def load_json(path:Union[str, Path]) -> dict:
+    """Loads a json file
+
+    Parameters
+    ----------
+    path : Union[str, Path]
+        Json file fullpath
+
+    Returns
+    -------
+    dict
+        Loaded json file
+    """
+    with open(path, 'r') as f:
+        annot_dict = json.load(f)
+    return annot_dict
+
+
 def save_pickle(fname:Union[str, Path], object):
     """Stores an object in pickle format
 
@@ -30,6 +48,24 @@ def save_pickle(fname:Union[str, Path], object):
     fname.parent.mkdir(parents=True, exist_ok=True)
     with open(fname, 'wb') as f:
         pickle.dump(object, f)
+
+
+def load_pickle(fname:Union[str, Path]):
+    """Load pickle file
+
+    Parameters
+    ----------
+    fname : Union[str, Path]
+        Full file path
+
+    Returns
+    -------
+        The loaded object
+    """
+
+    with open(fname, 'rb') as f:
+        data = pickle.load(f)
+    return data
 
 
 def plot_confusion_matrix(y_true:np.ndarray, y_pred:np.ndarray, norm:bool, fullpath:Union[str, Path], figsize=(8,5)):
@@ -141,5 +177,23 @@ def load_model_from_path(model_path:Union[str, Path]):
     
     model = load_model(filepath=model_path)
     return model
+
+
+def normalize_image_data(input_array: np.array, inverse: bool=False) -> np.array:
+    """Normalizes (and inverse) the image data i.e. (0,1) or (0,255)
+
+    Args:
+        input_array (np.array): Image data array
+        inverse (bool, optional): Controls the type of normalization. Defaults to False.
+
+    Returns:
+        normalized_array (np.array): Normalized image data array
+    """
+    if not inverse:
+        normalized_array = cv2.normalize(src=input_array, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+    else:
+        normalized_array = cv2.normalize(src=input_array, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+    
+    return normalized_array
 
 

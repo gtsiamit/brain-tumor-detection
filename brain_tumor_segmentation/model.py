@@ -1,12 +1,21 @@
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Input, Dropout, Conv2D, MaxPooling2D, BatchNormalization, UpSampling2D, concatenate, Activation
-from tensorflow.keras.optimizers import Adam, RMSprop
+from tensorflow.keras.optimizers import RMSprop
 from tensorflow.keras.regularizers import l2
 
+# Model parameters
 INIT_FEATURES = 16
 
 
-def build_unet_model(input_shape):
+def build_unet_model(input_shape: tuple):
+    """Builds a UNET segmentation model
+
+    Args:
+        input_shape (tuple): Model input shape
+
+    Returns:
+        model (tf.keras.Model): UNET model
+    """
 
 	# Input Layer
     input_layer = Input(shape=input_shape)
@@ -107,7 +116,6 @@ def build_unet_model(input_shape):
 
     model = Model(inputs=input_layer, outputs=output_layer)
     
-    #optimizer = Adam(learning_rate=0.0001)
     optimizer = RMSprop(learning_rate=0.0005)
     model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics = ['accuracy'])
 
