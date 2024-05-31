@@ -13,7 +13,7 @@ import tensorflow as tf
 import cv2
 
 
-def load_json(path:Union[str, Path]) -> dict:
+def load_json(path: Union[str, Path]) -> dict:
     """Loads a json file
 
     Parameters
@@ -26,19 +26,19 @@ def load_json(path:Union[str, Path]) -> dict:
     dict
         Loaded json file
     """
-    with open(path, 'r') as f:
+    with open(path, "r") as f:
         annot_dict = json.load(f)
     return annot_dict
 
 
-def save_pickle(fname:Union[str, Path], object):
+def save_pickle(fname: Union[str, Path], object):
     """Stores an object in pickle format
 
     Parameters
     ----------
     fname : Union[str, Path]
         export full path (with filename)
-    object 
+    object
         It can be any object
     """
 
@@ -46,11 +46,11 @@ def save_pickle(fname:Union[str, Path], object):
         fname = Path(fname)
 
     fname.parent.mkdir(parents=True, exist_ok=True)
-    with open(fname, 'wb') as f:
+    with open(fname, "wb") as f:
         pickle.dump(object, f)
 
 
-def load_pickle(fname:Union[str, Path]):
+def load_pickle(fname: Union[str, Path]):
     """Load pickle file
 
     Parameters
@@ -63,12 +63,18 @@ def load_pickle(fname:Union[str, Path]):
         The loaded object
     """
 
-    with open(fname, 'rb') as f:
+    with open(fname, "rb") as f:
         data = pickle.load(f)
     return data
 
 
-def plot_confusion_matrix(y_true:np.ndarray, y_pred:np.ndarray, norm:bool, fullpath:Union[str, Path], figsize=(8,5)):
+def plot_confusion_matrix(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    norm: bool,
+    fullpath: Union[str, Path],
+    figsize=(8, 5),
+):
     """Plot and store as image the confusion matrix
 
     Parameters
@@ -90,23 +96,30 @@ def plot_confusion_matrix(y_true:np.ndarray, y_pred:np.ndarray, norm:bool, fullp
 
     labels = np.unique(y_true).tolist()
     if norm:
-        cm = confusion_matrix(y_true, y_pred, normalize='true')*100
-        fmt = '1.2f'
+        cm = confusion_matrix(y_true, y_pred, normalize="true") * 100
+        fmt = "1.2f"
     else:
-        cm = confusion_matrix(y_true, y_pred)   
-        fmt = 'd'
+        cm = confusion_matrix(y_true, y_pred)
+        fmt = "d"
 
     cm_df = pd.DataFrame(cm, index=labels, columns=labels)
-    acc = round(accuracy_score(y_true, y_pred)*100, 2)
+    acc = round(accuracy_score(y_true, y_pred) * 100, 2)
 
     plt.figure(figsize=figsize)
-    sns.heatmap(cm_df, annot=True, cmap='Blues', cbar = False, fmt = fmt, annot_kws={"size": 35 / np.sqrt(len(cm_df))})
-    plt.ylabel('Actal Values')
-    plt.yticks(rotation = 0)
-    plt.xlabel('Predicted Values')
-    plt.title(f'Accuracy: {acc}%', fontsize=15)
+    sns.heatmap(
+        cm_df,
+        annot=True,
+        cmap="Blues",
+        cbar=False,
+        fmt=fmt,
+        annot_kws={"size": 35 / np.sqrt(len(cm_df))},
+    )
+    plt.ylabel("Actal Values")
+    plt.yticks(rotation=0)
+    plt.xlabel("Predicted Values")
+    plt.title(f"Accuracy: {acc}%", fontsize=15)
     fullpath.parent.mkdir(parents=True, exist_ok=True)
-    plt.savefig(str(fullpath), transparent = True, bbox_inches='tight')
+    plt.savefig(str(fullpath), transparent=True, bbox_inches="tight")
     plt.show(block=False)
 
 
@@ -117,12 +130,12 @@ def plot_history(history, fullpath):
         fullpath = Path(fullpath)
 
     epochs = len(history.history["accuracy"])
-    xticks = np.arange(1, epochs+1, 1)
+    xticks = np.arange(1, epochs + 1, 1)
 
     fig, axs = plt.subplots(2)
     # Create accuracy subplot
     axs[0].plot(xticks, history.history["accuracy"], label="Train accuracy")
-    if 'val_accuracy' in history.history.keys():
+    if "val_accuracy" in history.history.keys():
         axs[0].plot(xticks, history.history["val_accuracy"], label="Val accuracy")
     axs[0].xaxis.set_major_locator(MaxNLocator(integer=True))
     axs[0].set_ylabel("Accuracy")
@@ -131,7 +144,7 @@ def plot_history(history, fullpath):
 
     # Create error subplot
     axs[1].plot(xticks, history.history["loss"], label="Train error")
-    if 'val_loss' in history.history.keys():
+    if "val_loss" in history.history.keys():
         axs[1].plot(xticks, history.history["val_loss"], label="Val error")
     axs[1].xaxis.set_major_locator(MaxNLocator(integer=True))
     axs[1].set_ylabel("Error")
@@ -141,31 +154,31 @@ def plot_history(history, fullpath):
 
     plt.tight_layout()
     fullpath.parent.mkdir(parents=True, exist_ok=True)
-    plt.savefig(str(fullpath), transparent=False, bbox_inches='tight')
+    plt.savefig(str(fullpath), transparent=False, bbox_inches="tight")
     plt.show(block=False)
 
 
-def save_model_locally(model:tf.keras.Model, model_path:Union[str, Path]):
+def save_model_locally(model: tf.keras.Model, model_path: Union[str, Path]):
     """Saves a trained model to a specific path
 
     Args:
-        model (tf.keras.Model): 
+        model (tf.keras.Model):
             The trained model
-        model_path (Union[str, Path]): 
+        model_path (Union[str, Path]):
             Path to save the model
     """
 
     if not isinstance(model_path, str):
         model_path = str(model_path)
-    
+
     save_model(model=model, filepath=model_path)
 
 
-def load_model_from_path(model_path:Union[str, Path]):
+def load_model_from_path(model_path: Union[str, Path]):
     """Loads a saved model from a specific path
 
     Args:
-        model_path (Union[str, Path]): 
+        model_path (Union[str, Path]):
             Path that the model is stored
 
     Returns:
@@ -174,12 +187,12 @@ def load_model_from_path(model_path:Union[str, Path]):
 
     if not isinstance(model_path, str):
         model_path = str(model_path)
-    
+
     model = load_model(filepath=model_path)
     return model
 
 
-def normalize_image_data(input_array: np.array, inverse: bool=False) -> np.array:
+def normalize_image_data(input_array: np.array, inverse: bool = False) -> np.array:
     """Normalizes (and inverse) the image data i.e. (0,1) or (0,255)
 
     Args:
@@ -190,10 +203,22 @@ def normalize_image_data(input_array: np.array, inverse: bool=False) -> np.array
         normalized_array (np.array): Normalized image data array
     """
     if not inverse:
-        normalized_array = cv2.normalize(src=input_array, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        normalized_array = cv2.normalize(
+            src=input_array,
+            dst=None,
+            alpha=0,
+            beta=1,
+            norm_type=cv2.NORM_MINMAX,
+            dtype=cv2.CV_32F,
+        )
     else:
-        normalized_array = cv2.normalize(src=input_array, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-    
+        normalized_array = cv2.normalize(
+            src=input_array,
+            dst=None,
+            alpha=0,
+            beta=255,
+            norm_type=cv2.NORM_MINMAX,
+            dtype=cv2.CV_8U,
+        )
+
     return normalized_array
-
-
