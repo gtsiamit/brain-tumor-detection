@@ -5,20 +5,32 @@ import os
 import cv2
 from tensorflow.keras.models import load_model
 import numpy as np
-import pickle
-import matplotlib.pyplot as plt
-from PIL import Image
+import sys
 
+# Setting up paths
 FILEDIR = Path(__file__).parent
-BASE_DIR = FILEDIR.parent
+ROOT_PATH = Path.cwd()
+
+sys.path.append(os.path.join(str(ROOT_PATH), "utils"))
+from utils import normalize_image_data
+
+# Setting up image shape
 IMAGE_SIZE_X = 128
 IMAGE_SIZE_Y = 128
 
 
 def app_input_form():
+    """Input form for app
+
+    Returns:
+        file_uploaded (st.runtime.uploaded_file_manager.UploadedFile): Uploaded file
+        selectbox_classification (str): Controls if classification is performed
+        selectbox_segmentation (str): Controls if segmentation is performed
+    """
 
     with st.form(key="options_form"):
 
+        # File uploader for input image
         file_uploaded = st.file_uploader(
             label="Choose an input file for the brain tumor detection system:", 
             type=['jpeg', 'jpg', 'png']
@@ -26,16 +38,19 @@ def app_input_form():
 
         st.write("Choose the system parts to run")
         
+        # Selectbox for classification task
         selectbox_classification = st.selectbox(
             label="Brain tumor classification:", 
             options=["Yes", "No"]
         )
         
+        # Selectbox for segmentation task
         selectbox_segmentation = st.selectbox(
             label="Brain tumor segmentation:", 
             options=["Yes", "No"]
         )
         
+        # Submit button
         form_submitted = st.form_submit_button("Submit")
 
         if form_submitted:
@@ -44,61 +59,84 @@ def app_input_form():
         return file_uploaded, selectbox_classification, selectbox_segmentation
 
 
-def store_uploaded_file(file_uploaded):
+def upload_testing_image(img_file_buffer: st.runtime.uploaded_file_manager.UploadedFile, grayscale=False):
+    """Convert uploaded image to opencv image
 
-    img_path = UPLOAD_DIR.joinpath(file_uploaded.name)
-    with open(str(img_path), "wb") as f:
-        f.write(file_uploaded.getbuffer())
+    Args:
+        img_file_buffer (st.runtime.uploaded_file_manager.UploadedFile): Uploaded image file
+        grayscale (bool, optional): Load the image in grayscale or color. Defaults to False.
 
+    Returns:
+        img (Union[np.array, None]): The image array
+    """
+    if img_file_buffer is not None:
+        # Convert the file to an opencv image.
+        file_bytes = np.asarray(bytearray(img_file_buffer.read()), dtype=np.uint8)
+        if not grayscale:
+            img = cv2.imdecode(file_bytes, 1)
+        else:
+            img = cv2.imdecode(file_bytes, 0)
+        # resize image
+        img = cv2.resize(img, (IMAGE_SIZE_X,IMAGE_SIZE_Y))
 
-def remove_uploaded_file(file_uploaded):
-
-    img_path = UPLOAD_DIR.joinpath(file_uploaded.name)
-    os.remove(path=img_path)
-
-
-def load_image_file(filename, grayscale=False):
-
-    img_path = UPLOAD_DIR.joinpath(filename)
-
-    if not grayscale:
-        img = cv2.imread( str(img_path) )
+        return img
     else:
-        img = cv2.imread(str(img_path), cv2.IMREAD_GRAYSCALE)
+        return None
+
+
+@st.cache(allow_output_mutation=True)
+def get_model(path: Path):
+    """Gets the path, loads and returns the model
+
+    Args:
+        path (Path): The path of the model
+
+    Returns:
+        tf.keras.Model: The loaded model
+    """
+
+    return load_model(path)
+
+
+def app_classification_results_output(img: np.array) -> str:
+    """Extracts the classification results
+
+    Args:
+        img (np.array): Image array
+
+    Returns:
+        predicted_label (str): Predicted label from classification model
+    """
+
+    # Image preprocessing before classification
+    processed_img = img[np.newaxis,...]
+
+    # Load prestrained classification model
+    model = get_model(CLASSIFICATION_MODEL_PATH)
+
+    # Make prediction
+    prediction = model.predict(processed_img, verbose=0)
+    prob=prediction[0][0]
+
+    if prob>=0.5:
+        predicted_label='yes'
+    else:
+        predicted_label='no'
     
-    img_resized = cv2.resize(img, (IMAGE_SIZE_X,IMAGE_SIZE_Y))
+    pred_int = prob.round().astype(int)
+    pred_prob_to_write = round(prob*100, 2) / 100
+    pred_prob_to_write = f"{pred_prob_to_write:.4f}"
 
-    return img_resized
-
-
-def load_model_from_path(model_path):
-    model = load_model(filepath=str(model_path))
-    return model
-
-
-def app_classification_results_output(img_arr):
-    
-    img_arr_for_pred = img_arr[np.newaxis,...]
-    model = load_model_from_path(model_path=CLASSIFICATION_MODEL_PATH)
-
-    pred_prob = model.predict(img_arr_for_pred, verbose=0)
-    pred_int = pred_prob.round().astype(int)
-
-    with open(str(LABEL_ENCODER_PATH), 'rb') as f:
-        le = pickle.load(f)
-    
-    pred_prob_to_write = round(pred_prob[0][0]*100, 2) / 100
-    pred_int_inverse = le.inverse_transform(pred_int[0])
-    predicted_label = pred_int_inverse[0]
-
+    # Print classification results
     st.header("Brain tumor classification results")
 
     st.write(f"Predicted probability for the input image is: {pred_prob_to_write}")
-    st.write(f" The rounded predicted probability for the input image is: {pred_int[0][0]}")
+    st.write(f" The rounded predicted probability for the input image is: {pred_int}")
     st.write(f" The predicted label for the input image is: {predicted_label}")
 
-    st.image(image=img_arr, width=192, caption='Input image')
+    st.image(image=img, width=192, caption='Input image')
 
+    # Generate the predicted label
     if predicted_label=='yes':
         st.write(f"Brain tumor has been detected in the input image")
     elif predicted_label=='no':
@@ -107,59 +145,44 @@ def app_classification_results_output(img_arr):
     return predicted_label
 
 
-def normalize_image_data(input_array, inverse=False):
-    if not inverse:
-        normalized_array = cv2.normalize(src=input_array, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-    else:
-        normalized_array = cv2.normalize(src=input_array, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+def app_segmentation_results_output(img: np.array):
+    """Extracts the segmentation results
+
+    Args:
+        img (np.array): Image data array
+    """
     
-    return normalized_array
+    # Image preprocessing before classification
+    two_channel_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    processed_img = two_channel_img[np.newaxis, ..., np.newaxis]
+    processed_img_norm = normalize_image_data(input_array=processed_img)
 
+    # Load prestrained classification model
+    model = get_model(SEGMENTATION_MODEL_PATH)
 
-def plot_store_segmentation_resuts(input_img, seg_img, temp_img_path):
-    
-    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(6,3))
-    ax[0].imshow(X=input_img, cmap='gray')
-    ax[0].set_title(label='Input image', fontsize=10)
-    ax[0].axis('off')
-    ax[1].imshow(X=seg_img)
-    ax[1].set_title(label='Segmented image', fontsize=10)
-    ax[1].axis('off')
-    
-    fig.savefig(temp_img_path, facecolor='white', transparent=False, bbox_inches='tight')
+    # Make prediction
+    predicted_mask = model.predict(processed_img_norm, verbose=0)
+    predicted_mask_norm_inv = normalize_image_data(input_array=predicted_mask, inverse=True)
 
+    # Convert the image to 3-channel image
+    pred_img_arr_3_channel = cv2.cvtColor(predicted_mask_norm_inv[0], cv2.COLOR_GRAY2RGB)
 
-def app_segmentation_results_output(img_arr):
-
-    model = load_model_from_path(model_path=SEGMENTATION_MODEL_PATH)
-
-    img_arr_for_pred = img_arr[np.newaxis, ..., np.newaxis]
-    img_arr_for_pred_norm = normalize_image_data(input_array=img_arr_for_pred)
-
-    pred_img_arr = model.predict(img_arr_for_pred_norm, verbose=0)
-    pred_img_arr_norm_inv = normalize_image_data(input_array=pred_img_arr, inverse=True)
-
-    pred_img_arr_3_channel = cv2.cvtColor(pred_img_arr_norm_inv[0], cv2.COLOR_GRAY2RGB)
-
-    ret, thresh = cv2.threshold(src=pred_img_arr_3_channel, thresh=50, maxval=255, type=cv2.THRESH_BINARY)
+    # Apply the predicted mask to the image
+    ret, thresh = cv2.threshold(src=pred_img_arr_3_channel, thresh=150, maxval=255, type=cv2.THRESH_BINARY)
     indices_above_thres = np.where(thresh>0)
 
-    segmented_img = cv2.cvtColor(img_arr_for_pred[0], cv2.COLOR_GRAY2RGB)
+    segmented_img = cv2.cvtColor(processed_img[0], cv2.COLOR_GRAY2RGB)
     segmented_img[indices_above_thres[:2]] = [255,0,0]
 
+    # Print segmentation results
     st.header("Brain tumor segmentation results")
-    st.write(f"Input image and segmented image:")
-
-    temp_img_path = str(TEMP_DIR.joinpath('temp_segmented_image.png'))
-    plot_store_segmentation_resuts(input_img=img_arr_for_pred[0], seg_img=segmented_img, temp_img_path=temp_img_path)
-    image_for_plot = Image.open(fp=temp_img_path)
-    st.image(image=image_for_plot, caption='Segmentation results', channels='RGB')
-    os.remove(path=temp_img_path)
-
-
+    st.write(f"Segmentation results")
+    st.image([two_channel_img, segmented_img], caption=['Input image', 'Segmented image'], channels='RGB')
 
 
 def app():
+    """Executes the app for uploading images and generating classification and/or segmentantion results
+    """
 
     st.title("Welcome to Brain Tumor Detection system application")
 
@@ -167,56 +190,47 @@ def app():
 
     if not file_uploaded is None:
 
-        store_uploaded_file(file_uploaded=file_uploaded)
+        cv_img = upload_testing_image(img_file_buffer=file_uploaded)
 
-        img_filename = file_uploaded.name
-
+        # check if classifiction is requested
         if selectbox_classification=='Yes':
-            img_arr = load_image_file(filename=img_filename)
-            predicted_classification_label = app_classification_results_output(img_arr=img_arr)
-        
-        if selectbox_segmentation=='Yes' and predicted_classification_label=='yes':
-            img_arr = load_image_file(filename=img_filename, grayscale=True)
-            app_segmentation_results_output(img_arr=img_arr)
-        elif selectbox_segmentation=='Yes' and predicted_classification_label=='no':
-            st.write(f"Brain tumor segmentation will not be applied on the input image.")
-        
-        remove_uploaded_file(file_uploaded=file_uploaded)
 
-
+            #img_arr = load_image_file(filename=img_filename)
+            predicted_classification_label = app_classification_results_output(img=cv_img)
+        
+            # check if segmentation is requested
+            # if the classification result is 'yes', segmentation is performed
+            if selectbox_segmentation=='Yes' and predicted_classification_label=='yes':
+                app_segmentation_results_output(img=cv_img)
+            
+            # if the classification result is 'no', segmentation is not performed
+            elif selectbox_segmentation=='Yes' and predicted_classification_label=='no':
+                st.write(f"Brain tumor segmentation will not be applied on the input image.")
 
 
 def main():
 
+    # input arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('--classification_model_path', type=str, required=False, help='Path to classification model')
     parser.add_argument('--segmentation_model_path', type=str, required=False, help='Path to segmentation model')
-    parser.add_argument('--label_encoder_path', type=str, required=False, help='Path to label encoder')
     args = parser.parse_args()
 
-    global CLASSIFICATION_MODEL_PATH, SEGMENTATION_MODEL_PATH, LABEL_ENCODER_PATH
+    # paths to classification model and segmentation model
+    global CLASSIFICATION_MODEL_PATH, SEGMENTATION_MODEL_PATH
     CLASSIFICATION_MODEL_PATH = args.classification_model_path
     SEGMENTATION_MODEL_PATH = args.segmentation_model_path
-    LABEL_ENCODER_PATH = args.label_encoder_path
-
-    if not CLASSIFICATION_MODEL_PATH:
-        CLASSIFICATION_MODEL_PATH = BASE_DIR.joinpath('brain_tumor_classification/results/train/model_full.h5')
-    else:
-        CLASSIFICATION_MODEL_PATH = Path(CLASSIFICATION_MODEL_PATH)
-    if not SEGMENTATION_MODEL_PATH:
-        SEGMENTATION_MODEL_PATH = BASE_DIR.joinpath('brain_tumor_segmentation/results/train/model_unet.h5')
-    else:
-        SEGMENTATION_MODEL_PATH = Path(SEGMENTATION_MODEL_PATH)
-    if not LABEL_ENCODER_PATH:
-        LABEL_ENCODER_PATH = BASE_DIR.joinpath('brain_tumor_classification/results/train/le.pkl')
-    else:
-        LABEL_ENCODER_PATH = Path(LABEL_ENCODER_PATH)
     
-    global UPLOAD_DIR, TEMP_DIR
-    UPLOAD_DIR = FILEDIR.joinpath('upload_dir')
-    TEMP_DIR = FILEDIR.joinpath('temp_dir')
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
-    os.makedirs(TEMP_DIR, exist_ok=True)
+    if not CLASSIFICATION_MODEL_PATH:
+        CLASSIFICATION_PATH = ROOT_PATH.joinpath('brain_tumor_classification/output/train')
+        CLASSIFICATION_MODEL_PATH = CLASSIFICATION_PATH.joinpath('model_full.h5')
+    if not SEGMENTATION_MODEL_PATH:
+        SEGMENTATION_PATH = ROOT_PATH.joinpath('brain_tumor_segmentation/output/train')
+        SEGMENTATION_MODEL_PATH = SEGMENTATION_PATH.joinpath('model_unet.h5')
+
+    CLASSIFICATION_MODEL_PATH = Path(CLASSIFICATION_MODEL_PATH)
+    SEGMENTATION_MODEL_PATH = Path(SEGMENTATION_MODEL_PATH)
+
 
     app()
 
