@@ -11,7 +11,7 @@ import sys
 FILEDIR = Path(__file__).parent
 ROOT_PATH = Path.cwd()
 
-sys.path.append(os.path.join(str(ROOT_PATH), "utils"))
+sys.path.append(os.path.join(str(ROOT_PATH), "brain_tumor_detection/utils"))
 from utils import normalize_image_data
 
 # Setting up image shape
@@ -84,7 +84,8 @@ def upload_testing_image(img_file_buffer: st.runtime.uploaded_file_manager.Uploa
         return None
 
 
-@st.cache(allow_output_mutation=True)
+#@st.cache(allow_output_mutation=True)
+@st.cache_resource
 def get_model(path: Path):
     """Gets the path, loads and returns the model
 
@@ -222,10 +223,10 @@ def main():
     SEGMENTATION_MODEL_PATH = args.segmentation_model_path
     
     if not CLASSIFICATION_MODEL_PATH:
-        CLASSIFICATION_PATH = ROOT_PATH.joinpath('brain_tumor_classification/output/train')
+        CLASSIFICATION_PATH = ROOT_PATH.joinpath('brain_tumor_detection/brain_tumor_classification/output/train')
         CLASSIFICATION_MODEL_PATH = CLASSIFICATION_PATH.joinpath('model_full.h5')
     if not SEGMENTATION_MODEL_PATH:
-        SEGMENTATION_PATH = ROOT_PATH.joinpath('brain_tumor_segmentation/output/train')
+        SEGMENTATION_PATH = ROOT_PATH.joinpath('brain_tumor_detection/brain_tumor_segmentation/output/train')
         SEGMENTATION_MODEL_PATH = SEGMENTATION_PATH.joinpath('model_unet.h5')
 
     CLASSIFICATION_MODEL_PATH = Path(CLASSIFICATION_MODEL_PATH)
