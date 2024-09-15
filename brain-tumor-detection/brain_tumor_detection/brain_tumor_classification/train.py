@@ -14,7 +14,7 @@ import sys
 FILEDIR = Path(__file__).parent
 ROOT_PATH = Path.cwd()
 
-sys.path.append(os.path.join(str(ROOT_PATH), "utils"))
+sys.path.append(os.path.join(str(ROOT_PATH), "brain_tumor_detection/utils"))
 from utils import save_pickle, plot_history, plot_confusion_matrix, save_model_locally
 
 from model import build_model
@@ -25,8 +25,7 @@ IMAGE_SIZE_X = 128
 IMAGE_SIZE_Y = 128
 # Training hyperparameters
 NUMBER_FOLDS = 10
-# EPOCHS = 10
-EPOCHS = 1
+EPOCHS = 10
 BATCH_SIZE = 32
 
 

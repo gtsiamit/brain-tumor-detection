@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 from typing import Union
 from pathlib import Path
-from sklearn.metrics import confusion_matrix, accuracy_score
+from sklearn.metrics import confusion_matrix, accuracy_score, ConfusionMatrixDisplay
 from tensorflow.keras.models import save_model, load_model
 import tensorflow as tf
 import cv2
@@ -102,19 +102,17 @@ def plot_confusion_matrix(
         cm = confusion_matrix(y_true, y_pred)
         fmt = "d"
 
-    cm_df = pd.DataFrame(cm, index=labels, columns=labels)
     acc = round(accuracy_score(y_true, y_pred) * 100, 2)
 
     plt.figure(figsize=figsize)
-    sns.heatmap(
-        cm_df,
-        annot=True,
-        cmap="Blues",
-        cbar=False,
-        fmt=fmt,
-        annot_kws={"size": 35 / np.sqrt(len(cm_df))},
-    )
-    plt.ylabel("Actal Values")
+
+    cm_display = ConfusionMatrixDisplay(confusion_matrix = cm, display_labels = labels)
+    cm_display.plot(cmap='Blues', values_format=fmt)
+
+    for text in plt.gca().texts:
+        text.set_size(35 / np.sqrt(len(cm)))
+    
+    plt.ylabel("Actual Values")
     plt.yticks(rotation=0)
     plt.xlabel("Predicted Values")
     plt.title(f"Accuracy: {acc}%", fontsize=15)

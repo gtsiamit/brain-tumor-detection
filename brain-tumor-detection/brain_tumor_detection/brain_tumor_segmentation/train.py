@@ -11,7 +11,7 @@ import sys
 FILEDIR = Path(__file__).parent
 ROOT_PATH = Path.cwd()
 
-sys.path.append(os.path.join(str(ROOT_PATH), "utils"))
+sys.path.append(os.path.join(str(ROOT_PATH), "brain_tumor_detection/utils"))
 from utils import plot_history, save_model_locally, normalize_image_data
 
 from model import build_unet_model

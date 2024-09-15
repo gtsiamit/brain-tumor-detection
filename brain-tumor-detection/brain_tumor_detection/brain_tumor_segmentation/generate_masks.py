@@ -8,7 +8,7 @@ import os
 # Setting up paths
 ROOT_PATH = Path.cwd()
 
-sys.path.append(os.path.join(str(ROOT_PATH), "utils"))
+sys.path.append(os.path.join(str(ROOT_PATH), "brain_tumor_detection/utils"))
 from utils import load_json
 
 # Setting up parameters
